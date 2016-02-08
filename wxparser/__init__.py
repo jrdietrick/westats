@@ -107,6 +107,10 @@ class Category(object):
         return deserialized_object
 
 
+class UnknownMessageTypeException(Exception):
+    pass
+
+
 class Message(object):
 
     TYPE_NORMAL              = 1
@@ -159,10 +163,8 @@ class Message(object):
             self.type = Message.TYPE_TRANSFER
         elif message_type == 436207665:
             self.type = Message.TYPE_HONGBAO
-        elif message_type == -1879048186 or message_type == 268435505:
-            self.type = Message.TYPE_UNKNOWN
         else:
-            raise Exception('Uncategorized message type %d!' % message_type)
+            raise UnknownMessageTypeException('Uncategorized message type %d!' % message_type)
 
 
 class Thread(object):
@@ -208,7 +210,12 @@ class Thread(object):
         return self._messages
 
     def _parse_messages(self):
-        self._messages = [Message(row) for row in self.cursor.execute('SELECT createTime, isSend, type, content FROM message WHERE talker=? ORDER BY createTime', [self.contact.raw_username])]
+        self._messages = []
+        for row in self.cursor.execute('SELECT createTime, isSend, type, content FROM message WHERE talker=? ORDER BY createTime', [self.contact.raw_username]):
+            try:
+                self._messages.append(Message(row))
+            except UnknownMessageTypeException:
+                pass
 
 
 class Contact(object):
