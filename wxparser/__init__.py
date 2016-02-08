@@ -69,7 +69,7 @@ class UserData(object):
     def serialize(self):
         return json.dumps({
             'categories': [category.serialize() for category in self.categories.values()],
-        })
+        }, indent=4)
 
     def save(self):
         output_file = open('userdata.json', 'w')
