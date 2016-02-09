@@ -129,10 +129,11 @@ class Message(object):
     TYPE_HONGBAO             = 14
     TYPE_UNKNOWN             = 15
 
-    def __init__(self, columns):
-        self.timestamp = datetime.datetime.fromtimestamp(float(columns[0]) / 1000, utc)
-        self.sent = True if columns[1] else False
-        self._process_type(columns[2])
+    def __init__(self, db_row):
+        self.timestamp = datetime.datetime.fromtimestamp(float(db_row['createTime']) / 1000, utc)
+        self.sent = True if db_row['isSend'] else False
+        self._process_type(db_row['type'])
+        self.content = db_row['content']
 
     def _process_type(self, message_type):
         if message_type == 1:
@@ -180,30 +181,6 @@ class Thread(object):
         return True if self.groupchat_regex.match(self.contact.raw_username) else False
 
     @property
-    def message_count(self):
-        if not getattr(self, '_message_count', None):
-            self._message_count = int(next(self.cursor.execute('SELECT COUNT(*) FROM message WHERE talker=?', [self.contact.raw_username]))[0])
-        return self._message_count
-
-    def message_count_between(self, from_timestamp, to_timestamp):
-        rows = self.cursor.execute('SELECT COUNT(*) FROM message WHERE talker=? AND createTime >= ? AND createTime < ?',
-                                   [
-                                       self.contact.raw_username,
-                                       int(_aware_time_to_unix_timestamp(from_timestamp)) * 1000,
-                                       int(_aware_time_to_unix_timestamp(to_timestamp)) * 1000,
-                                   ])
-        return int(next(rows)[0])
-
-    def message_sent_count_between(self, from_timestamp, to_timestamp):
-        rows = self.cursor.execute('SELECT COUNT(*) FROM message WHERE talker=? AND createTime >= ? AND createTime < ? AND isSend=1',
-                                   [
-                                       self.contact.raw_username,
-                                       int(_aware_time_to_unix_timestamp(from_timestamp)) * 1000,
-                                       int(_aware_time_to_unix_timestamp(to_timestamp)) * 1000,
-                                   ])
-        return int(next(rows)[0])
-
-    @property
     def messages(self):
         if not getattr(self, '_messages', None):
             self._parse_messages()
@@ -238,6 +215,7 @@ class Parser(object):
     def __init__(self, filename):
         self.filename = filename
         self.database_handle = sqlite3.connect(self.filename)
+        self.database_handle.row_factory = sqlite3.Row
         self.cursor = self.database_handle.cursor()
         self.threads = [Thread(self.cursor, contact) for contact in self._parse_contacts()]
 

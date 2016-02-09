@@ -38,12 +38,12 @@ def build_sent_by_category_by_month_graph(wxp):
         category_slug = thread.category.slug if getattr(thread, 'category', None) else 'other'
         for i in xrange(0, len(timespans)):
             from_timestamp, to_timestamp = timespans[i]
-            raw_data[category_slug][i] += thread.message_sent_count_between(from_timestamp, to_timestamp)
+            raw_data[category_slug][i] += len(filter(lambda message: message.sent and message.timestamp >= from_timestamp and message.timestamp < to_timestamp, thread.messages))
 
     for thread in wxp.group_threads:
         for i in xrange(0, len(timespans)):
             from_timestamp, to_timestamp = timespans[i]
-            raw_data['group-chats'][i] += thread.message_sent_count_between(from_timestamp, to_timestamp)
+            raw_data['group-chats'][i] += len(filter(lambda message: message.sent and message.timestamp >= from_timestamp and message.timestamp < to_timestamp, thread.messages))
 
     sorted_keys = list(reversed(sorted(raw_data.keys(), key=lambda slug: sum(raw_data[slug]))))
 
@@ -171,28 +171,28 @@ if __name__ == '__main__':
     userdata = UserData.initialize(wxp)
 
     def _chats_in_2015(thread):
-        return thread.message_count_between(beginning_of_2015, beginning_of_2016)
+        return filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)
 
     def _sent_chats_in_2015(thread):
-        return thread.message_sent_count_between(beginning_of_2015, beginning_of_2016)
+        return filter(lambda message: message.sent, _chats_in_2015(thread))
 
     def _chats_in_2016(thread):
-        return thread.message_count_between(beginning_of_2016, beginning_of_2017)
+        return filter(lambda message: message.timestamp >= beginning_of_2016 and message.timestamp < beginning_of_2017, thread.messages)
 
     def _sent_chats_in_2016(thread):
-        return thread.message_sent_count_between(beginning_of_2016, beginning_of_2017)
+        return filter(lambda message: message.sent, _chats_in_2016(thread))
 
-    total_individual_chats = sum([_chats_in_2015(thread) for thread in wxp.individual_threads])
-    individual_sent_messages = sum([thread.message_sent_count_between(beginning_of_2015, beginning_of_2016) for thread in wxp.individual_threads])
-    group_sent_messages = sum([thread.message_sent_count_between(beginning_of_2015, beginning_of_2016) for thread in wxp.group_threads])
+    total_individual_chats = sum([len(_chats_in_2015(thread)) for thread in wxp.individual_threads])
+    individual_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.individual_threads])
+    group_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.group_threads])
     total_sent_messages = individual_sent_messages + group_sent_messages
 
     # Figure out how many people we need
     # to categorize to get to 90% of chats
     cumulative = 0
     to_categorize = []
-    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: _chats_in_2015(thread)))):
-        cumulative += _chats_in_2015(thread)
+    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_chats_in_2015(thread))))):
+        cumulative += len(_chats_in_2015(thread))
         to_categorize.append(thread)
         if float(cumulative) / total_individual_chats > 0.90:
             break
@@ -235,47 +235,47 @@ if __name__ == '__main__':
     print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
     # print HighchartRenderer(build_all_messages_scatterplot(wxp)).render()
 
-    print
-    threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: _sent_chats_in_2015(thread))))
-    for i in xrange(0, 10):
-        print threads_by_sent[i].contact.display_name, _sent_chats_in_2015(threads_by_sent[i]), _chats_in_2015(threads_by_sent[i]) - _sent_chats_in_2015(threads_by_sent[i])
+    # print
+    # threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))
+    # for i in xrange(0, 10):
+    #     print threads_by_sent[i].contact.display_name, len(_sent_chats_in_2015(threads_by_sent[i])), len(_chats_in_2015(threads_by_sent[i])) - len(_sent_chats_in_2015(threads_by_sent[i]))
 
-    print
-    threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: _sent_chats_in_2016(thread))))
-    for i in xrange(0, 10):
-        print threads_by_sent[i].contact.display_name, _sent_chats_in_2016(threads_by_sent[i]), _chats_in_2016(threads_by_sent[i]) - _sent_chats_in_2016(threads_by_sent[i])
+    # print
+    # threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2016(thread)))))
+    # for i in xrange(0, 10):
+    #     print threads_by_sent[i].contact.display_name, len(_sent_chats_in_2016(threads_by_sent[i])), len(_chats_in_2016(threads_by_sent[i])) - len(_sent_chats_in_2016(threads_by_sent[i]))
 
-    by_category = defaultdict(lambda: 0)
-    for thread in wxp.individual_threads:
-        category_slug = thread.category.slug if getattr(thread, 'category', None) else 'other'
-        by_category[category_slug] += _chats_in_2015(thread)
+    # by_category = defaultdict(lambda: 0)
+    # for thread in wxp.individual_threads:
+    #     category_slug = thread.category.slug if getattr(thread, 'category', None) else 'other'
+    #     by_category[category_slug] += len(_chats_in_2015(thread))
 
-    print
-    print 'TOTAL'
-    for category in list(reversed(sorted(by_category, key=lambda x: by_category[x]))):
-        display_name = 'Other' if category == 'other' else userdata.categories[category].display_name
-        print display_name, '%.1f%%' % (float(by_category[category]) / float(total_individual_chats) * 100.0)
+    # print
+    # print 'TOTAL'
+    # for category in list(reversed(sorted(by_category, key=lambda x: by_category[x]))):
+    #     display_name = 'Other' if category == 'other' else userdata.categories[category].display_name
+    #     print display_name, '%.1f%%' % (float(by_category[category]) / float(total_individual_chats) * 100.0)
 
-    sent_by_category = defaultdict(lambda: 0)
-    for thread in wxp.individual_threads:
-        category_slug = thread.category.slug if getattr(thread, 'category', None) else 'other'
-        sent_by_category[category_slug] += _sent_chats_in_2015(thread)
+    # sent_by_category = defaultdict(lambda: 0)
+    # for thread in wxp.individual_threads:
+    #     category_slug = thread.category.slug if getattr(thread, 'category', None) else 'other'
+    #     sent_by_category[category_slug] += len(_sent_chats_in_2015(thread))
 
-    print
-    print 'SENT'
-    for category in list(reversed(sorted(sent_by_category, key=lambda x: sent_by_category[x]))):
-        display_name = 'Other' if category == 'other' else userdata.categories[category].display_name
-        print display_name, '%.1f%%' % (float(sent_by_category[category]) / float(individual_sent_messages) * 100.0)
+    # print
+    # print 'SENT'
+    # for category in list(reversed(sorted(sent_by_category, key=lambda x: sent_by_category[x]))):
+    #     display_name = 'Other' if category == 'other' else userdata.categories[category].display_name
+    #     print display_name, '%.1f%%' % (float(sent_by_category[category]) / float(individual_sent_messages) * 100.0)
 
-    print
-    cumulative = 0
-    people = 0
-    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: _chats_in_2015(thread)))):
-        cumulative += _chats_in_2015(thread)
-        people += 1
-        if people in [1, 3, 5, 10, 20]:
-            print '%.1f%% of chatting is with only %d people' % (float(cumulative) / float(total_individual_chats) * 100.0, people)
+    # print
+    # cumulative = 0
+    # people = 0
+    # for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_chats_in_2015(thread))))):
+    #     cumulative += len(_chats_in_2015(thread))
+    #     people += 1
+    #     if people in [1, 3, 5, 10, 20]:
+    #         print '%.1f%% of chatting is with only %d people' % (float(cumulative) / float(total_individual_chats) * 100.0, people)
 
-    print
-    print '%.1f%% of your sent messages go to groups' % (float(group_sent_messages) / float(total_sent_messages) * 100)
-    print '%.1f%% of your sent messages go to individuals' % (float(individual_sent_messages) / float(total_sent_messages) * 100)
+    # print
+    # print '%.1f%% of your sent messages go to groups' % (float(group_sent_messages) / float(total_sent_messages) * 100)
+    # print '%.1f%% of your sent messages go to individuals' % (float(individual_sent_messages) / float(total_sent_messages) * 100)
