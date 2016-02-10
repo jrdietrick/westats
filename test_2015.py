@@ -23,6 +23,19 @@ beginning_of_2015 = datetime.datetime(2015, 1, 1, 0, 0, 0, 0, beijing_time)
 beginning_of_2016 = datetime.datetime(2016, 1, 1, 0, 0, 0, 0, beijing_time)
 beginning_of_2017 = datetime.datetime(2017, 1, 1, 0, 0, 0, 0, beijing_time)
 
+contrasty_colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999']
+contrasty_colors_rgba = [
+    'rgba(228, 26, 28, 0.6)',
+    'rgba(55, 126, 184, 0.6)',
+    'rgba(77, 175, 74, 0.6)',
+    'rgba(152, 78, 163, 0.6)',
+    'rgba(255, 127, 0, 0.6)',
+    'rgba(255, 255, 51, 0.6)',
+    'rgba(166, 86, 40, 0.6)',
+    'rgba(247, 129, 191, 0.6)',
+    'rgba(153, 153, 153, 0.6)'
+]
+
 
 def build_sent_by_category_by_month_graph(wxp):
     # Build the timespans
@@ -100,7 +113,7 @@ class ScatterPlotSeries(object):
         self.color = color
 
 
-def build_message_scatterplot(wxp, series_list):
+def build_message_scatterplot(wxp, title, series_list):
 
     def _day_of_year(timestamp):
         return int((timestamp - beginning_of_2015).total_seconds() / (60 * 60 * 24))
@@ -125,9 +138,8 @@ def build_message_scatterplot(wxp, series_list):
             'type': 'scatter',
             'zoomType': 'xy',
         },
-        'colors': ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999'],
         'title': {
-            'text': '2015 - All Messages',
+            'text': title,
         },
         'xAxis': {
             'title': {
@@ -225,15 +237,33 @@ if __name__ == '__main__':
 
     from renderers.highchart import HighchartRenderer
     # print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
-    print HighchartRenderer(build_message_scatterplot(wxp,
-                                                      [ScatterPlotSeries('Messages Sent',
-                                                                         lambda thread: True,
-                                                                         lambda message: message.sent,
-                                                                         'rgba(55, 126, 184, .6)'),
-                                                       ScatterPlotSeries('Messages Received',
-                                                                         lambda thread: not thread.is_group_chat,
-                                                                         lambda message: not message.sent,
-                                                                         'rgba(77, 175, 74, .6)')])).render()
+    # print HighchartRenderer(build_message_scatterplot(wxp,
+    #                                                   [ScatterPlotSeries('Messages Sent',
+    #                                                                      lambda thread: True,
+    #                                                                      lambda message: message.sent,
+    #                                                                      'rgba(55, 126, 184, .6)'),
+    #                                                    ScatterPlotSeries('Messages Received',
+    #                                                                      lambda thread: not thread.is_group_chat,
+    #                                                                      lambda message: not message.sent,
+    #                                                                      'rgba(77, 175, 74, .6)')])).render()
+
+    class NullCategory(object):
+        slug = 'other'
+
+    def _thread_filter_generator(slug):
+        return lambda thread: getattr(thread, 'category', NullCategory()).slug == slug
+
+    i = 0
+    series_list = []
+    for category in sorted(userdata.categories.keys(), key=lambda key: userdata.categories[key].display_name):
+        series_list.append(ScatterPlotSeries(userdata.categories[category].display_name,
+                                             _thread_filter_generator(category),
+                                             lambda message: message.sent,
+                                             contrasty_colors_rgba[i]))
+        i += 1
+
+    print HighchartRenderer(build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)).render()
+
 
     # print
     # threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))
