@@ -91,7 +91,16 @@ def build_sent_by_category_by_month_graph(wxp):
     }
 
 
-def build_all_messages_scatterplot(wxp):
+class ScatterPlotSeries(object):
+
+    def __init__(self, name, thread_filter, message_filter, color):
+        self.name = name
+        self.thread_filter = thread_filter
+        self.message_filter = message_filter
+        self.color = color
+
+
+def build_message_scatterplot(wxp, series_list):
 
     def _day_of_year(timestamp):
         return int((timestamp - beginning_of_2015).total_seconds() / (60 * 60 * 24))
@@ -99,23 +108,17 @@ def build_all_messages_scatterplot(wxp):
     def _hour_of_day(timestamp):
         return round(timestamp.hour + (timestamp.minute / 60.0), 2)
 
-    messages_sent = []
-    for thread in wxp.threads:
-        for message in thread.messages:
-            if message.timestamp < beginning_of_2015 or message.timestamp >= beginning_of_2016:
-                continue
-            if not message.sent:
-                continue
-            messages_sent.append([_day_of_year(message.timestamp.astimezone(beijing_time)), _hour_of_day(message.timestamp.astimezone(beijing_time))])
-
-    messages_received = []
-    for thread in wxp.individual_threads:
-        for message in thread.messages:
-            if message.timestamp < beginning_of_2015 or message.timestamp >= beginning_of_2016:
-                continue
-            if not message.sent:
-                continue
-            messages_received.append([_day_of_year(message.timestamp.astimezone(beijing_time)), _hour_of_day(message.timestamp.astimezone(beijing_time))])
+    series_output = []
+    for series in series_list:
+        # Start with the blank structure
+        series_output.append({
+            'name': series.name,
+            'color': series.color,
+            'data': [],
+        })
+        for thread in filter(series.thread_filter, wxp.threads):
+            for message in filter(series.message_filter, filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)):
+                series_output[-1]['data'].append([_day_of_year(message.timestamp.astimezone(beijing_time)), _hour_of_day(message.timestamp.astimezone(beijing_time))])
 
     return {
         'chart': {
@@ -151,18 +154,7 @@ def build_all_messages_scatterplot(wxp):
                 },
             },
         },
-        'series': [
-            {
-                'name': 'Messages sent',
-                'color': 'rgba(55, 126, 184, .6)',
-                'data': messages_sent,
-            },
-            {
-                'name': 'Messages received',
-                'color': 'rgba(77, 175, 74, .6)',
-                'data': messages_received,
-            },
-        ]
+        'series': series_output,
     }
 
 
@@ -232,8 +224,16 @@ if __name__ == '__main__':
         userdata.save()
 
     from renderers.highchart import HighchartRenderer
-    print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
-    # print HighchartRenderer(build_all_messages_scatterplot(wxp)).render()
+    # print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
+    print HighchartRenderer(build_message_scatterplot(wxp,
+                                                      [ScatterPlotSeries('Messages Sent',
+                                                                         lambda thread: True,
+                                                                         lambda message: message.sent,
+                                                                         'rgba(55, 126, 184, .6)'),
+                                                       ScatterPlotSeries('Messages Received',
+                                                                         lambda thread: not thread.is_group_chat,
+                                                                         lambda message: not message.sent,
+                                                                         'rgba(77, 175, 74, .6)')])).render()
 
     # print
     # threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))
