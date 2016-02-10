@@ -191,6 +191,8 @@ def render_highcharts(highchart_data):
     <script type="text/javascript" src="x.jquery-1.11.2.min.js"></script>
     <script type="text/javascript" src="x.highcharts.js"></script>
     <script type="text/javascript" src="x.highcharts.darktheme.js"></script>
+    <script type="text/javascript" src="x.highcharts.exporting.js"></script>
+    <script type="text/javascript" src="x.highcharts.offline-exporting.js"></script>
     <script type='text/javascript'>
     // <![CDATA[
 %(chart_data)s
