@@ -1,5 +1,4 @@
 import datetime
-import json
 import re
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
@@ -167,45 +166,6 @@ def build_all_messages_scatterplot(wxp):
     }
 
 
-def render_highcharts(highchart_data):
-    chart_div_template = '''\
-    <div id="chart%(index)d" style="width: 1280px; height: 720px; margin-left: auto; margin-right: auto;"></div>
-'''
-
-    chart_divs = [chart_div_template % {'index': i} for i in xrange(0, len(highchart_data))]
-
-    chart_data_template = '''\
-        $(function () {
-            $('#chart%(index)d').highcharts(%(chart_data)s);
-        });
-'''
-
-    chart_data = [chart_data_template % {'index': i, 'chart_data': json.dumps(highchart_data[i])} for i in xrange(0, len(highchart_data))]
-
-    template = '''\
-<html>
-<head>
-</head>
-<body>
-%(chart_divs)s
-    <script type="text/javascript" src="x.jquery-1.11.2.min.js"></script>
-    <script type="text/javascript" src="x.highcharts.js"></script>
-    <script type="text/javascript" src="x.highcharts.darktheme.js"></script>
-    <script type="text/javascript" src="x.highcharts.exporting.js"></script>
-    <script type="text/javascript" src="x.highcharts.offline-exporting.js"></script>
-    <script type='text/javascript'>
-    // <![CDATA[
-%(chart_data)s
-    // ]]>
-    </script>
-</body>
-'''
-    return template % {
-        'chart_divs': ''.join(chart_divs),
-        'chart_data': ''.join(chart_data),
-    }
-
-
 if __name__ == '__main__':
     wxp = Parser('decrypted.db')
     userdata = UserData.initialize(wxp)
@@ -271,10 +231,9 @@ if __name__ == '__main__':
         new_category.add_thread(thread)
         userdata.save()
 
-    print render_highcharts([
-        build_sent_by_category_by_month_graph(wxp),
-        build_all_messages_scatterplot(wxp),
-    ])
+    from renderers.highchart import HighchartRenderer
+    print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
+    # print HighchartRenderer(build_all_messages_scatterplot(wxp)).render()
 
     print
     threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: _sent_chats_in_2015(thread))))

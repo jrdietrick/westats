@@ -1,0 +1,16 @@
+%html
+    %head
+    %body style="background-color: #2a2a2b;"
+        %div#chart style="width: 1280px; height: 720px; margin-left: auto; margin-right: auto;"
+
+    %script type="text/javascript" src="x.jquery-1.11.2.min.js"
+    %script type="text/javascript" src="x.highcharts.js"
+    %script type="text/javascript" src="x.highcharts.darktheme.js"
+    %script type="text/javascript" src="x.highcharts.exporting.js"
+    %script type="text/javascript" src="x.highcharts.offline-exporting.js"
+    %script type="text/javascript"
+        // <![CDATA[
+        $(function () {
+            $('#chart').highcharts({{ chart_json }});
+        });
+        // ]]>
