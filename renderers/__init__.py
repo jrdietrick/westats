@@ -8,4 +8,4 @@ template_env.hamlish_mode = 'indented'
 template_env.hamlish_enable_div_shortcut = True
 
 from renderers.highchart import HighchartRenderer
-from renderers.group_chat_ranking import GroupChatRankingRenderer
+from renderers.table import TableRenderer

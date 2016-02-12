@@ -1,0 +1,23 @@
+-extends "_base.haml"
+-block content
+    .columns_8.centered
+        .uppercase style="font-size: 2.0em;"
+            {{ title }}
+        .uppercase style="font-size: 1.2em;"
+            {{ subtitle }}
+        %table
+            %thead
+                %tr
+                    -for col in header_row:
+                        %th.uppercase
+                            {{ col }}
+            %tbody
+                -for row in rows:
+                    %tr
+                        -for col in row:
+                            -if loop.index0 == 0:
+                                %th.heavy
+                                    {{ col }}
+                            -else
+                                %th
+                                    {{ col }}

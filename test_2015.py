@@ -1,9 +1,10 @@
 import datetime
+import json
 import re
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
-from renderers import HighchartRenderer, GroupChatRankingRenderer
+from renderers import HighchartRenderer, TableRenderer
 from wxparser import Parser, UserData, Category, _slugify
 
 
@@ -202,6 +203,25 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
     return build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)
 
 
+def build_group_chat_ranking_table(wxp):
+    group_chat_ranking = []
+    for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(_sent_chats_in_2015(thread))))):
+        display_name = thread.contact.display_name
+        if not display_name:
+            continue
+        my_sent = len(_sent_chats_in_2015(thread))
+        total_sent = len(_chats_in_2015(thread))
+        percent = round(100.0 * my_sent / total_sent, 1)
+        group_chat_ranking.append((display_name, my_sent, total_sent, percent))
+        if len(group_chat_ranking) == 8:
+            break
+
+    return TableRenderer('Top Group Chats (2015)',
+                         ['', 'Your<br/>messages', 'Total<br/>messages', '%'],
+                         group_chat_ranking,
+                         subtitle='By your messages sent')
+
+
 if __name__ == '__main__':
     wxp = Parser('decrypted.db')
     userdata = UserData.initialize(wxp)
@@ -267,15 +287,7 @@ if __name__ == '__main__':
         new_category.add_thread(thread)
         userdata.save()
 
-    group_chat_ranking = []
-    for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))[:10]:
-        display_name = thread.contact.display_name
-        my_sent = len(_sent_chats_in_2015(thread))
-        total_sent = len(_chats_in_2015(thread))
-        percent = round(100.0 * my_sent / total_sent, 1)
-        group_chat_ranking.append((display_name, my_sent, total_sent, percent))
-
     import codecs
     chart_file = codecs.open('chart.html', 'w', encoding='utf-8')
-    chart_file.write(GroupChatRankingRenderer(group_chat_ranking).render())
+    chart_file.write(build_group_chat_ranking_table(wxp).render())
     chart_file.close()
