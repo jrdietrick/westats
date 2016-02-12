@@ -3,9 +3,9 @@
     .columns_8.centered
         .uppercase style="font-size: 2.0em;"
             {{ title }}
-        .uppercase style="font-size: 1.2em;"
+        .uppercase style="font-size: 1.2em; margin-top: 8px;"
             {{ subtitle }}
-        %table
+        %table style="margin-top: 8px;"
             %thead
                 %tr
                     -for col in header_row:
@@ -16,8 +16,8 @@
                     %tr
                         -for col in row:
                             -if loop.index0 == 0:
-                                %th.heavy
+                                %td.heavy
                                     {{ col }}
                             -else
-                                %th
+                                %td style="text-align: right;"
                                     {{ col }}

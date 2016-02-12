@@ -219,7 +219,7 @@ def build_group_chat_ranking_table(wxp):
         my_sent = len(_sent_chats_in_2015(thread))
         total_sent = len(_chats_in_2015(thread))
         percent = round(100.0 * my_sent / total_sent, 1)
-        group_chat_ranking.append((display_name, my_sent, total_sent, percent))
+        group_chat_ranking.append((display_name, _int_with_comma(my_sent), _int_with_comma(total_sent), percent))
         if len(group_chat_ranking) == 8:
             break
 
@@ -227,6 +227,48 @@ def build_group_chat_ranking_table(wxp):
                          ['', 'Your<br/>messages', 'Total<br/>messages', '%'],
                          group_chat_ranking,
                          subtitle='By your messages sent')
+
+
+def build_silent_group_chat_ranking_table(wxp):
+    group_chat_ranking = []
+    for thread in reversed(sorted(filter(lambda thread: len(_sent_chats_in_2015(thread)) == 0, wxp.group_threads), key=lambda thread: len(_chats_in_2015(thread)))):
+        display_name = _group_chat_alias(thread.contact.display_name)
+        if not display_name:
+            continue
+        my_sent = len(_sent_chats_in_2015(thread))
+        total_sent = len(_chats_in_2015(thread))
+        percent = round(100.0 * my_sent / total_sent, 1)
+        group_chat_ranking.append((display_name, _int_with_comma(my_sent), _int_with_comma(total_sent), percent))
+        if len(group_chat_ranking) == 8:
+            break
+
+    return TableRenderer('Peak Lurkage (2015)',
+                         ['', 'Your<br/>messages', 'Total<br/>messages', '%'],
+                         group_chat_ranking,
+                         subtitle='Pleading the fifth')
+
+
+def build_individual_chat_ranking_table(wxp):
+    ranking = []
+    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))[:10]:
+        display_name = thread.contact.display_name
+        my_sent = len(_sent_chats_in_2015(thread))
+        total = len(_chats_in_2015(thread))
+        percent = round(100.0 * len(_sent_chats_in_2015(thread)) / total_sent_messages, 1)
+        ranking.append((display_name, _int_with_comma(my_sent), percent, _int_with_comma(total)))
+        if len(ranking) == 10:
+            break
+
+    top_five_percent = sum(x[2] for x in ranking[:5])
+
+    return TableRenderer('2015 Top Contacts',
+                         ['', 'Your<br/>messages', '% of all 2015<br/>sent messages', 'Total<br/>messages'],
+                         ranking,
+                         subtitle='%.1f%% of your sent messages were to just five people' % top_five_percent)
+
+
+def _int_with_comma(integer):
+    return '{:,d}'.format(integer)
 
 
 if __name__ == '__main__':
@@ -296,5 +338,5 @@ if __name__ == '__main__':
 
     import codecs
     chart_file = codecs.open('chart.html', 'w', encoding='utf-8')
-    chart_file.write(build_group_chat_ranking_table(wxp).render())
+    chart_file.write(build_individual_chat_ranking_table(wxp).render())
     chart_file.close()
