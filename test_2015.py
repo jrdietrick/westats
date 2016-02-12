@@ -85,10 +85,10 @@ def build_sent_by_category_by_month_graph(wxp, userdata):
             'type': 'column'
         },
         'title': {
-            'text': 'Messages sent'
+            'text': 'Messages Sent (2015)'
         },
         'subtitle': {
-            'text': 'per month, by category'
+            'text': 'by month, by category'
         },
         'colors': ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999'],
         'xAxis': {
@@ -211,7 +211,7 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
                                          contrasty_colors_rgba[i]))
     i += 1
 
-    return build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)
+    return build_message_scatterplot(wxp, 'All Sent Messages (2015)', series_list)
 
 
 def _group_chat_alias(original_display_name):
@@ -272,7 +272,7 @@ def build_individual_chat_ranking_table(wxp):
 
     top_five_percent = sum(x[2] for x in ranking[:5])
 
-    return TableRenderer('2015 Top Contacts',
+    return TableRenderer('Top Contacts (2015)',
                          ['', 'Your<br/>messages', '% of all 2015<br/>sent messages', 'Total<br/>messages'],
                          ranking,
                          subtitle='%.1f%% of your sent messages were to just five people' % top_five_percent)
