@@ -203,10 +203,17 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
     return build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)
 
 
+def _group_chat_alias(original_display_name):
+        try:
+            return json.loads(open('group_chat_aliases.json', 'r').read()).get(original_display_name, original_display_name)
+        except (IOError, ValueError):
+            return original_display_name
+
+
 def build_group_chat_ranking_table(wxp):
     group_chat_ranking = []
     for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(_sent_chats_in_2015(thread))))):
-        display_name = thread.contact.display_name
+        display_name = _group_chat_alias(thread.contact.display_name)
         if not display_name:
             continue
         my_sent = len(_sent_chats_in_2015(thread))
