@@ -3,7 +3,7 @@ import re
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
-from renderers.highchart import HighchartRenderer
+from renderers import HighchartRenderer, GroupChatRankingRenderer
 from wxparser import Parser, UserData, Category, _slugify
 
 
@@ -266,3 +266,16 @@ if __name__ == '__main__':
         userdata.add_category(new_category)
         new_category.add_thread(thread)
         userdata.save()
+
+    group_chat_ranking = []
+    for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))[:10]:
+        display_name = thread.contact.display_name
+        my_sent = len(_sent_chats_in_2015(thread))
+        total_sent = len(_chats_in_2015(thread))
+        percent = round(100.0 * my_sent / total_sent, 1)
+        group_chat_ranking.append((display_name, my_sent, total_sent, percent))
+
+    import codecs
+    chart_file = codecs.open('chart.html', 'w', encoding='utf-8')
+    chart_file.write(GroupChatRankingRenderer(group_chat_ranking).render())
+    chart_file.close()

@@ -1,0 +1,40 @@
+body {
+    background-color: #2a2a2b;
+    font-family: 'Unica One', sans-serif;
+    color: #e0e0e3;
+    font-weight: 400;
+    padding-top: 16px;
+}
+
+.columns_12 {
+    width: 1200px;
+}
+.columns_8 {
+    width: 800px;
+}
+.columns_6 {
+    width: 600px;
+}
+.columns_4 {
+    width: 400px;
+}
+
+.centered {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.uppercase {
+    text-transform: uppercase;
+}
+
+.light {
+    font-weight: 100;
+}
+.heavy {
+    font-weight: 600;
+}
+
+td, tr, th {
+    padding: 20px;
+}
