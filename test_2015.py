@@ -40,6 +40,22 @@ contrasty_colors_rgba = [
 ]
 
 
+def _chats_in_2015(thread):
+    return filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)
+
+
+def _sent_chats_in_2015(thread):
+    return filter(lambda message: message.sent, _chats_in_2015(thread))
+
+
+def _chats_in_2016(thread):
+    return filter(lambda message: message.timestamp >= beginning_of_2016 and message.timestamp < beginning_of_2017, thread.messages)
+
+
+def _sent_chats_in_2016(thread):
+    return filter(lambda message: message.sent, _chats_in_2016(thread))
+
+
 def build_sent_by_category_by_month_graph(wxp, userdata):
     # Build the timespans
     timespans = []
@@ -187,14 +203,20 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
     class NullCategory(object):
         slug = 'other'
 
-    def _thread_filter_generator(slug):
-        return lambda thread: getattr(thread, 'category', NullCategory()).slug == slug
+    def _individual_thread_filter_generator(slug):
+        return lambda thread: not thread.is_group_chat and getattr(thread, 'category', NullCategory()).slug == slug
+
+    category_sums = defaultdict(lambda: 0)
+    for thread in wxp.individual_threads:
+        if getattr(thread, 'category', NullCategory()).slug == 'other':
+            continue
+        category_sums[thread.category.slug] += len(_sent_chats_in_2015(thread))
 
     i = 0
     series_list = []
-    for category in sorted(filter(lambda key: key != 'other', userdata.categories.keys()), key=lambda key: userdata.categories[key].display_name):
+    for category in reversed(sorted(category_sums.keys(), key=lambda key: category_sums[key])):
         series_list.append(ScatterPlotSeries(userdata.categories[category].display_name,
-                                             _thread_filter_generator(category),
+                                             _individual_thread_filter_generator(category),
                                              lambda message: message.sent,
                                              contrasty_colors_rgba[i]))
         i += 1
@@ -206,7 +228,7 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
     i += 1
 
     series_list.append(ScatterPlotSeries('Other',
-                                         _thread_filter_generator('other'),
+                                         _individual_thread_filter_generator('other'),
                                          lambda message: message.sent,
                                          contrasty_colors_rgba[i]))
     i += 1
@@ -285,18 +307,6 @@ def _int_with_comma(integer):
 if __name__ == '__main__':
     wxp = Parser('decrypted.db')
     userdata = UserData.initialize(wxp)
-
-    def _chats_in_2015(thread):
-        return filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)
-
-    def _sent_chats_in_2015(thread):
-        return filter(lambda message: message.sent, _chats_in_2015(thread))
-
-    def _chats_in_2016(thread):
-        return filter(lambda message: message.timestamp >= beginning_of_2016 and message.timestamp < beginning_of_2017, thread.messages)
-
-    def _sent_chats_in_2016(thread):
-        return filter(lambda message: message.sent, _chats_in_2016(thread))
 
     total_individual_chats = sum([len(_chats_in_2015(thread)) for thread in wxp.individual_threads])
     individual_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.individual_threads])
