@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
+from renderers.highchart import HighchartRenderer
 from wxparser import Parser, UserData, Category, _slugify
 
 
@@ -170,6 +171,37 @@ def build_message_scatterplot(wxp, title, series_list):
     }
 
 
+def build_sent_message_by_category_scatterplot(wxp, userdata):
+    class NullCategory(object):
+        slug = 'other'
+
+    def _thread_filter_generator(slug):
+        return lambda thread: getattr(thread, 'category', NullCategory()).slug == slug
+
+    i = 0
+    series_list = []
+    for category in sorted(filter(lambda key: key != 'other', userdata.categories.keys()), key=lambda key: userdata.categories[key].display_name):
+        series_list.append(ScatterPlotSeries(userdata.categories[category].display_name,
+                                             _thread_filter_generator(category),
+                                             lambda message: message.sent,
+                                             contrasty_colors_rgba[i]))
+        i += 1
+
+    series_list.append(ScatterPlotSeries('Group Chats',
+                                         lambda thread: thread.is_group_chat,
+                                         lambda message: message.sent,
+                                         contrasty_colors_rgba[i]))
+    i += 1
+
+    series_list.append(ScatterPlotSeries('Other',
+                                         _thread_filter_generator('other'),
+                                         lambda message: message.sent,
+                                         contrasty_colors_rgba[i]))
+    i += 1
+
+    return build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)
+
+
 if __name__ == '__main__':
     wxp = Parser('decrypted.db')
     userdata = UserData.initialize(wxp)
@@ -235,7 +267,6 @@ if __name__ == '__main__':
         new_category.add_thread(thread)
         userdata.save()
 
-    from renderers.highchart import HighchartRenderer
     # print HighchartRenderer(build_sent_by_category_by_month_graph(wxp)).render()
     # print HighchartRenderer(build_message_scatterplot(wxp,
     #                                                   [ScatterPlotSeries('Messages Sent',
@@ -246,24 +277,6 @@ if __name__ == '__main__':
     #                                                                      lambda thread: not thread.is_group_chat,
     #                                                                      lambda message: not message.sent,
     #                                                                      'rgba(77, 175, 74, .6)')])).render()
-
-    class NullCategory(object):
-        slug = 'other'
-
-    def _thread_filter_generator(slug):
-        return lambda thread: getattr(thread, 'category', NullCategory()).slug == slug
-
-    i = 0
-    series_list = []
-    for category in sorted(userdata.categories.keys(), key=lambda key: userdata.categories[key].display_name):
-        series_list.append(ScatterPlotSeries(userdata.categories[category].display_name,
-                                             _thread_filter_generator(category),
-                                             lambda message: message.sent,
-                                             contrasty_colors_rgba[i]))
-        i += 1
-
-    print HighchartRenderer(build_message_scatterplot(wxp, '2015 - All Sent Messages', series_list)).render()
-
 
     # print
     # threads_by_sent = list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))
