@@ -40,7 +40,7 @@ contrasty_colors_rgba = [
 ]
 
 
-def build_sent_by_category_by_month_graph(wxp):
+def build_sent_by_category_by_month_graph(wxp, userdata):
     # Build the timespans
     timespans = []
     rolling_date = datetime.datetime(2015, 1, 1, 0, 0, 0, 0, beijing_time)
@@ -64,15 +64,25 @@ def build_sent_by_category_by_month_graph(wxp):
     sorted_keys = list(reversed(sorted(raw_data.keys(), key=lambda slug: sum(raw_data[slug]))))
 
     series_data = []
-    for series in sorted_keys:
+    for series in filter(lambda key: key not in ['other', 'group-chats'], sorted_keys):
         series_data.append({
-            'name': series,
+            'name': userdata.categories[series].display_name,
             'data': raw_data[series],
         })
 
+    series_data.append({
+        'name': 'Group Chats',
+        'data': raw_data['group-chats'],
+    })
+
+    series_data.append({
+        'name': 'Other',
+        'data': raw_data['other'],
+    })
+
     return HighchartRenderer({
         'chart': {
-            'type': 'area'
+            'type': 'column'
         },
         'title': {
             'text': 'Messages sent'
@@ -98,7 +108,7 @@ def build_sent_by_category_by_month_graph(wxp):
             'valueSuffix': ' messages'
         },
         'plotOptions': {
-            'area': {
+            'column': {
                 'stacking': 'normal',
                 'lineWidth': 1,
             }
