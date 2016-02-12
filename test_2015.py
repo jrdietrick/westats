@@ -305,12 +305,15 @@ if __name__ == '__main__':
 
     # Figure out how many people we need
     # to categorize to get to 90% of chats
-    cumulative = 0
+    total_cumulative = 0
+    individual_cumulative = 0
     to_categorize = []
-    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_chats_in_2015(thread))))):
-        cumulative += len(_chats_in_2015(thread))
+    for thread in list(reversed(sorted(wxp.threads, key=lambda thread: len(_sent_chats_in_2015(thread))))):
+        if not thread.is_group_chat:
+            individual_cumulative += len(_sent_chats_in_2015(thread))
+        total_cumulative += len(_sent_chats_in_2015(thread))
         to_categorize.append(thread)
-        if float(cumulative) / total_individual_chats > 0.90:
+        if float(total_cumulative) / total_sent_messages > 0.90 and float(individual_cumulative) / individual_sent_messages > 0.90:
             break
 
     for thread in to_categorize:
