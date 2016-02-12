@@ -1,3 +1,4 @@
+import codecs
 import datetime
 import json
 import re
@@ -69,7 +70,7 @@ def build_sent_by_category_by_month_graph(wxp):
             'data': raw_data[series],
         })
 
-    return {
+    return HighchartRenderer({
         'chart': {
             'type': 'area'
         },
@@ -103,7 +104,7 @@ def build_sent_by_category_by_month_graph(wxp):
             }
         },
         'series': series_data,
-    }
+    })
 
 
 class ScatterPlotSeries(object):
@@ -135,7 +136,7 @@ def build_message_scatterplot(wxp, title, series_list):
             for message in filter(series.message_filter, filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)):
                 series_output[-1]['data'].append([_day_of_year(message.timestamp.astimezone(beijing_time)), _hour_of_day(message.timestamp.astimezone(beijing_time))])
 
-    return {
+    return HighchartRenderer({
         'chart': {
             'type': 'scatter',
             'zoomType': 'xy',
@@ -169,7 +170,7 @@ def build_message_scatterplot(wxp, title, series_list):
             },
         },
         'series': series_output,
-    }
+    })
 
 
 def build_sent_message_by_category_scatterplot(wxp, userdata):
@@ -336,7 +337,18 @@ if __name__ == '__main__':
         new_category.add_thread(thread)
         userdata.save()
 
-    import codecs
-    chart_file = codecs.open('chart.html', 'w', encoding='utf-8')
-    chart_file.write(build_individual_chat_ranking_table(wxp).render())
-    chart_file.close()
+    renderers = [
+        lambda: build_sent_by_category_by_month_graph(wxp),
+        lambda: build_sent_message_by_category_scatterplot(wxp, userdata),
+        lambda: build_individual_chat_ranking_table(wxp),
+        lambda: build_group_chat_ranking_table(wxp),
+        lambda: build_silent_group_chat_ranking_table(wxp),
+    ]
+
+    for i in xrange(0, len(renderers)):
+        print 'Building renderer %d...' % i
+        renderer = renderers[i]()
+        print 'Rendering output...'
+        chart_file = codecs.open('chart%d.html' % i, 'w', encoding='utf-8')
+        chart_file.write(renderer.render())
+        chart_file.close()
