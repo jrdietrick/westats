@@ -56,6 +56,10 @@ def _sent_chats_in_2016(thread):
     return filter(lambda message: message.sent, _chats_in_2016(thread))
 
 
+class NullCategory(object):
+    slug = 'other'
+
+
 def build_sent_by_category_by_month_graph(wxp, userdata):
     # Build the timespans
     timespans = []
@@ -200,8 +204,6 @@ def build_message_scatterplot(wxp, title, series_list):
 
 
 def build_sent_message_by_category_scatterplot(wxp, userdata):
-    class NullCategory(object):
-        slug = 'other'
 
     def _individual_thread_filter_generator(slug):
         return lambda thread: not thread.is_group_chat and getattr(thread, 'category', NullCategory()).slug == slug
@@ -300,6 +302,132 @@ def build_individual_chat_ranking_table(wxp):
                          subtitle='%.1f%% of your sent messages were to just five people' % top_five_percent)
 
 
+def build_sent_by_time_heatmap(wxp):
+    time_dict = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    for thread in wxp.threads:
+        for message in _sent_chats_in_2015(thread):
+            weekday = message.timestamp.astimezone(beijing_time).weekday()
+            hour_bucket = (message.timestamp.astimezone(beijing_time).hour / 4)
+            time_dict[weekday][hour_bucket] += 1
+
+    weekdays_in_year_divisor = defaultdict(lambda: 0)
+    rolling_date = beginning_of_2015
+    while rolling_date < beginning_of_2016:
+        weekdays_in_year_divisor[rolling_date.weekday()] += 1
+        rolling_date += datetime.timedelta(days=1)
+
+    series_splayed = []
+    for weekday in xrange(0, 7):
+        for hour_bucket in xrange(0, 6):
+            series_splayed.append([weekday, hour_bucket, time_dict[weekday][hour_bucket] / weekdays_in_year_divisor[weekday]])
+
+    return HighchartRenderer({
+        'chart': {
+            'type': 'heatmap',
+            'marginTop': 40,
+            'marginBottom': 80,
+            'plotBorderWidth': 1,
+        },
+        'title': {
+            'text': 'Sent message average (2015)',
+        },
+        'xAxis': {
+            'categories': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        },
+        'yAxis': {
+            'categories': ['0:00-3:59', '4:00-7:59', '8:00-11:59', '12:00-15:59', '16:00-19:59', '20:00-23:59'],
+            'title': None,
+        },
+        'colorAxis': {
+            'min': 0,
+            'minColor': '#000000',
+            'maxColor': contrasty_colors[2],
+        },
+        'legend': {
+            'align': 'right',
+            'layout': 'vertical',
+            'margin': 0,
+            'verticalAlign': 'top',
+            'y': 25,
+            'symbolHeight': 280,
+        },
+        'series': [{
+            'name': 'Average messages per day',
+            'borderWidth': 1,
+            'data': series_splayed,
+            'dataLabels': {
+                'enabled': True,
+                'color': '#ffffff'
+            },
+        }],
+    })
+
+
+def build_sent_by_category_heatmap(wxp, userdata):
+    category_dict = defaultdict(lambda: defaultdict(lambda: 0))
+    seen_categories = set([])
+    for thread in wxp.individual_threads:
+        category_slug = getattr(thread, 'category', NullCategory()).slug
+        if category_slug == 'other':
+            continue
+        seen_categories.add(category_slug)
+        for message in _sent_chats_in_2015(thread):
+            weekday = message.timestamp.astimezone(beijing_time).weekday()
+            category_dict[weekday][category_slug] += 1
+
+    weekdays_in_year_divisor = defaultdict(lambda: 0)
+    rolling_date = beginning_of_2015
+    while rolling_date < beginning_of_2016:
+        weekdays_in_year_divisor[rolling_date.weekday()] += 1
+        rolling_date += datetime.timedelta(days=1)
+
+    series_splayed = []
+    for weekday in xrange(0, 7):
+        for i, category_slug in enumerate(sorted(seen_categories)):
+            series_splayed.append([weekday, i, category_dict[weekday][category_slug] / weekdays_in_year_divisor[weekday]])
+
+    return HighchartRenderer({
+        'chart': {
+            'type': 'heatmap',
+            'marginTop': 40,
+            'marginBottom': 80,
+            'plotBorderWidth': 1,
+        },
+        'title': {
+            'text': 'Sent message average (2015)',
+        },
+        'xAxis': {
+            'categories': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        },
+        'yAxis': {
+            'categories': [userdata.categories[category_slug].display_name for category_slug in sorted(seen_categories)],
+            'title': None,
+        },
+        'colorAxis': {
+            'min': 0,
+            'minColor': '#000000',
+            'maxColor': contrasty_colors[2],
+        },
+        'legend': {
+            'align': 'right',
+            'layout': 'vertical',
+            'margin': 0,
+            'verticalAlign': 'top',
+            'y': 25,
+            'symbolHeight': 280,
+        },
+        'series': [{
+            'name': 'Average messages per day',
+            'borderWidth': 1,
+            'data': series_splayed,
+            'dataLabels': {
+                'enabled': True,
+                'color': '#ffffff'
+            },
+        }],
+    })
+
+
 def _int_with_comma(integer):
     return '{:,d}'.format(integer)
 
@@ -366,6 +494,8 @@ if __name__ == '__main__':
         lambda: build_individual_chat_ranking_table(wxp),
         lambda: build_group_chat_ranking_table(wxp),
         lambda: build_silent_group_chat_ranking_table(wxp),
+        lambda: build_sent_by_time_heatmap(wxp),
+        lambda: build_sent_by_category_heatmap(wxp, userdata),
     ]
 
     for i in xrange(0, len(renderers)):
