@@ -277,10 +277,10 @@ def build_silent_group_chat_ranking_table(wxp):
         if len(group_chat_ranking) == 8:
             break
 
-    return TableRenderer('Peak Lurkage (2015)',
+    return TableRenderer('Peak Lurk (2015)',
                          ['', 'Your<br/>messages', 'Total<br/>messages', '%'],
                          group_chat_ranking,
-                         subtitle='Pleading the fifth')
+                         subtitle='Busiest Groups Where You Said Nothing All Year')
 
 
 def build_individual_chat_ranking_table(wxp):
