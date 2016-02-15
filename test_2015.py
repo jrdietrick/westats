@@ -5,8 +5,8 @@ import re
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
-from renderers import HighchartRenderer, TableRenderer
-from wxparser import Parser, UserData, Category, _slugify
+from renderers import HighchartRenderer, TableRenderer, VitalsRenderer
+from wxparser import Parser, UserData, Category, Message, _slugify
 
 
 class CST(datetime.tzinfo):
@@ -428,6 +428,53 @@ def build_sent_by_category_heatmap(wxp, userdata):
     })
 
 
+def build_scalars_table(wxp):
+    individual_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.individual_threads])
+    group_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.group_threads])
+    total_sent_messages = individual_sent_messages + group_sent_messages
+
+    individual_received_messages = sum([len(filter(lambda message: not message.sent, _chats_in_2015(thread))) for thread in wxp.individual_threads])
+    group_received_messages = sum([len(filter(lambda message: not message.sent, _chats_in_2015(thread))) for thread in wxp.group_threads])
+
+    blank_row = ['' * 3]
+
+    individual_chat_count = len(filter(lambda thread: len(_chats_in_2015(thread)) > 0, wxp.individual_threads))
+    group_chat_count = len(filter(lambda thread: len(_chats_in_2015(thread)) > 0, wxp.group_threads))
+
+    sent_sticker_count = sum([len(filter(lambda message: message.type == Message.TYPE_STICKER, _sent_chats_in_2015(thread))) for thread in wxp.threads])
+    received_sticker_count = sum([len(filter(lambda message: not message.sent and message.type == Message.TYPE_STICKER, _chats_in_2015(thread))) for thread in wxp.threads])
+
+    sent_hongbao_count = sum([len(filter(lambda message: message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], _sent_chats_in_2015(thread))) for thread in wxp.threads])
+    received_hongbao_count = sum([len(filter(lambda message: not message.sent and message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], _chats_in_2015(thread))) for thread in wxp.individual_threads])
+
+    rows = [
+        ['In 2015, you sent', _int_with_comma(total_sent_messages), 'messages'],
+        ['', _int_with_comma(individual_sent_messages), 'were to individuals,'],
+        ['and', _int_with_comma(group_sent_messages), 'were to groups'],
+        blank_row,
+        blank_row,
+        ['You received', _int_with_comma(individual_received_messages + group_received_messages), 'messages'],
+        ['', _int_with_comma(individual_received_messages), 'from individuals'],
+        ['and', _int_with_comma(group_received_messages), 'via groups'],
+        blank_row,
+        blank_row,
+        ['You talked to', individual_chat_count, 'people via individual chat'],
+        ['and were in', group_chat_count, 'active group chats'],
+        blank_row,
+        blank_row,
+        ['You sent', _int_with_comma(sent_sticker_count), 'stickers'],
+        ['and received', _int_with_comma(received_sticker_count), ''],
+        blank_row,
+        blank_row,
+        ['You sent', _int_with_comma(sent_hongbao_count), u'\u7ea2\u5305 / \u8f6c\u8d26'],
+        ['and received', _int_with_comma(received_hongbao_count), '(excluding groups)'],
+    ]
+
+    return VitalsRenderer('Vitals (2015)',
+                          blank_row,
+                          rows)
+
+
 def _int_with_comma(integer):
     return '{:,d}'.format(integer)
 
@@ -496,6 +543,7 @@ if __name__ == '__main__':
         lambda: build_silent_group_chat_ranking_table(wxp),
         lambda: build_sent_by_time_heatmap(wxp),
         lambda: build_sent_by_category_heatmap(wxp, userdata),
+        lambda: build_scalars_table(wxp),
     ]
 
     for i in xrange(0, len(renderers)):

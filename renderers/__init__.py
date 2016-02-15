@@ -9,3 +9,4 @@ template_env.hamlish_enable_div_shortcut = True
 
 from renderers.highchart import HighchartRenderer
 from renderers.table import TableRenderer
+from renderers.vitals import VitalsRenderer

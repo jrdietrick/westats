@@ -38,3 +38,6 @@ body {
 td, tr, th {
     padding: 10px 20px;
 }
+td.cozy {
+    padding: 4px 4px;
+}
