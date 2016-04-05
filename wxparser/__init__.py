@@ -2,7 +2,8 @@ import datetime
 import json
 import re
 import sqlite3
-import unicodedata
+
+from utils import slugify
 
 
 class UTC(datetime.tzinfo):
@@ -31,12 +32,6 @@ def _find_exactly_one(iterable, filter_callable):
     if len(candidates) > 1:
         raise Exception('Ambiguous!')
     return candidates[0]
-
-
-def _slugify(value):
-    value = unicodedata.normalize('NFKD', unicode(value)).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub('[^\w\s-]', '', value).strip().lower()
-    return re.sub('[-\s]+', '-', value)
 
 
 class UserData(object):
@@ -84,7 +79,7 @@ class Category(object):
 
     def __init__(self, display_name):
         self.display_name = display_name
-        self.slug = _slugify(self.display_name)
+        self.slug = slugify(self.display_name)
         self.threads = []
 
     def serialize(self):

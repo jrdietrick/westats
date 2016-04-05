@@ -1,30 +1,15 @@
 import codecs
 import datetime
 import json
-import re
+import sys
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
+import shortcuts
+import utils
 from renderers import HighchartRenderer, TableRenderer, VitalsRenderer
-from wxparser import Parser, UserData, Category, Message, _slugify
+from wxparser import Parser, UserData, Message
 
-
-class CST(datetime.tzinfo):
-
-    def utcoffset(self, dt):
-        return datetime.timedelta(hours=8)
-
-    def tzname(self, dt):
-        return 'Beijing Time'
-
-    def dst(self, dt):
-        return datetime.timedelta(hours=8)
-
-
-beijing_time = CST()
-beginning_of_2015 = datetime.datetime(2015, 1, 1, 0, 0, 0, 0, beijing_time)
-beginning_of_2016 = datetime.datetime(2016, 1, 1, 0, 0, 0, 0, beijing_time)
-beginning_of_2017 = datetime.datetime(2017, 1, 1, 0, 0, 0, 0, beijing_time)
 
 contrasty_colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf', '#999999']
 contrasty_colors_rgba = [
@@ -40,22 +25,6 @@ contrasty_colors_rgba = [
 ]
 
 
-def _chats_in_2015(thread):
-    return filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)
-
-
-def _sent_chats_in_2015(thread):
-    return filter(lambda message: message.sent, _chats_in_2015(thread))
-
-
-def _chats_in_2016(thread):
-    return filter(lambda message: message.timestamp >= beginning_of_2016 and message.timestamp < beginning_of_2017, thread.messages)
-
-
-def _sent_chats_in_2016(thread):
-    return filter(lambda message: message.sent, _chats_in_2016(thread))
-
-
 class NullCategory(object):
     slug = 'other'
 
@@ -63,8 +32,8 @@ class NullCategory(object):
 def build_sent_by_category_by_month_graph(wxp, userdata):
     # Build the timespans
     timespans = []
-    rolling_date = datetime.datetime(2015, 1, 1, 0, 0, 0, 0, beijing_time)
-    while rolling_date < beginning_of_2016:
+    rolling_date = datetime.datetime(2015, 1, 1, 0, 0, 0, 0, shortcuts.BEIJING_TIME)
+    while rolling_date < shortcuts.BEGINNING_OF_2016:
         next_start = rolling_date + relativedelta(months=1)
         timespans.append((rolling_date, next_start))
         rolling_date = next_start
@@ -149,7 +118,7 @@ class ScatterPlotSeries(object):
 def build_message_scatterplot(wxp, title, series_list):
 
     def _day_of_year(timestamp):
-        return int((timestamp - beginning_of_2015).total_seconds() / (60 * 60 * 24))
+        return int((timestamp - shortcuts.BEGINNING_OF_2015).total_seconds() / (60 * 60 * 24))
 
     def _hour_of_day(timestamp):
         return round(timestamp.hour + (timestamp.minute / 60.0), 2)
@@ -163,8 +132,8 @@ def build_message_scatterplot(wxp, title, series_list):
             'data': [],
         })
         for thread in filter(series.thread_filter, wxp.threads):
-            for message in filter(series.message_filter, filter(lambda message: message.timestamp >= beginning_of_2015 and message.timestamp < beginning_of_2016, thread.messages)):
-                series_output[-1]['data'].append([_day_of_year(message.timestamp.astimezone(beijing_time)), _hour_of_day(message.timestamp.astimezone(beijing_time))])
+            for message in filter(series.message_filter, filter(lambda message: message.timestamp >= shortcuts.BEGINNING_OF_2015 and message.timestamp < shortcuts.BEGINNING_OF_2016, thread.messages)):
+                series_output[-1]['data'].append([_day_of_year(message.timestamp.astimezone(shortcuts.BEIJING_TIME)), _hour_of_day(message.timestamp.astimezone(shortcuts.BEIJING_TIME))])
 
     return HighchartRenderer({
         'chart': {
@@ -212,7 +181,7 @@ def build_sent_message_by_category_scatterplot(wxp, userdata):
     for thread in wxp.individual_threads:
         if getattr(thread, 'category', NullCategory()).slug == 'other':
             continue
-        category_sums[thread.category.slug] += len(_sent_chats_in_2015(thread))
+        category_sums[thread.category.slug] += len(shortcuts.SENT_MESSAGES_IN_2015(thread))
 
     i = 0
     series_list = []
@@ -247,12 +216,12 @@ def _group_chat_alias(original_display_name):
 
 def build_group_chat_ranking_table(wxp):
     group_chat_ranking = []
-    for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(_sent_chats_in_2015(thread))))):
+    for thread in list(reversed(sorted(wxp.group_threads, key=lambda thread: len(shortcuts.SENT_MESSAGES_IN_2015(thread))))):
         display_name = _group_chat_alias(thread.contact.display_name)
         if not display_name:
             continue
-        my_sent = len(_sent_chats_in_2015(thread))
-        total_sent = len(_chats_in_2015(thread))
+        my_sent = len(shortcuts.SENT_MESSAGES_IN_2015(thread))
+        total_sent = len(shortcuts.MESSAGES_IN_2015(thread))
         percent = round(100.0 * my_sent / total_sent, 1)
         group_chat_ranking.append((display_name, _int_with_comma(my_sent), _int_with_comma(total_sent), percent))
         if len(group_chat_ranking) == 8:
@@ -266,12 +235,12 @@ def build_group_chat_ranking_table(wxp):
 
 def build_silent_group_chat_ranking_table(wxp):
     group_chat_ranking = []
-    for thread in reversed(sorted(filter(lambda thread: len(_sent_chats_in_2015(thread)) == 0, wxp.group_threads), key=lambda thread: len(_chats_in_2015(thread)))):
+    for thread in reversed(sorted(filter(lambda thread: len(shortcuts.SENT_MESSAGES_IN_2015(thread)) == 0, wxp.group_threads), key=lambda thread: len(shortcuts.MESSAGES_IN_2015(thread)))):
         display_name = _group_chat_alias(thread.contact.display_name)
         if not display_name:
             continue
-        my_sent = len(_sent_chats_in_2015(thread))
-        total_sent = len(_chats_in_2015(thread))
+        my_sent = len(shortcuts.SENT_MESSAGES_IN_2015(thread))
+        total_sent = len(shortcuts.MESSAGES_IN_2015(thread))
         percent = round(100.0 * my_sent / total_sent, 1)
         group_chat_ranking.append((display_name, _int_with_comma(my_sent), _int_with_comma(total_sent), percent))
         if len(group_chat_ranking) == 8:
@@ -285,11 +254,12 @@ def build_silent_group_chat_ranking_table(wxp):
 
 def build_individual_chat_ranking_table(wxp):
     ranking = []
-    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(_sent_chats_in_2015(thread)))))[:10]:
+    total_sent_messages = sum([len(shortcuts.SENT_MESSAGES_IN_2015(thread)) for thread in wxp.threads])
+    for thread in list(reversed(sorted(wxp.individual_threads, key=lambda thread: len(shortcuts.SENT_MESSAGES_IN_2015(thread)))))[:10]:
         display_name = thread.contact.display_name
-        my_sent = len(_sent_chats_in_2015(thread))
-        total = len(_chats_in_2015(thread))
-        percent = round(100.0 * len(_sent_chats_in_2015(thread)) / total_sent_messages, 1)
+        my_sent = len(shortcuts.SENT_MESSAGES_IN_2015(thread))
+        total = len(shortcuts.MESSAGES_IN_2015(thread))
+        percent = round(100.0 * len(shortcuts.SENT_MESSAGES_IN_2015(thread)) / total_sent_messages, 1)
         ranking.append((display_name, _int_with_comma(my_sent), percent, _int_with_comma(total)))
         if len(ranking) == 10:
             break
@@ -305,14 +275,14 @@ def build_individual_chat_ranking_table(wxp):
 def build_sent_by_time_heatmap(wxp):
     time_dict = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
     for thread in wxp.threads:
-        for message in _sent_chats_in_2015(thread):
-            weekday = message.timestamp.astimezone(beijing_time).weekday()
-            hour_bucket = (message.timestamp.astimezone(beijing_time).hour / 4)
+        for message in shortcuts.SENT_MESSAGES_IN_2015(thread):
+            weekday = message.timestamp.astimezone(shortcuts.BEIJING_TIME).weekday()
+            hour_bucket = (message.timestamp.astimezone(shortcuts.BEIJING_TIME).hour / 4)
             time_dict[weekday][hour_bucket] += 1
 
     weekdays_in_year_divisor = defaultdict(lambda: 0)
-    rolling_date = beginning_of_2015
-    while rolling_date < beginning_of_2016:
+    rolling_date = shortcuts.BEGINNING_OF_2015
+    while rolling_date < shortcuts.BEGINNING_OF_2016:
         weekdays_in_year_divisor[rolling_date.weekday()] += 1
         rolling_date += datetime.timedelta(days=1)
 
@@ -371,13 +341,13 @@ def build_sent_by_category_heatmap(wxp, userdata):
         if category_slug == 'other':
             continue
         seen_categories.add(category_slug)
-        for message in _sent_chats_in_2015(thread):
-            weekday = message.timestamp.astimezone(beijing_time).weekday()
+        for message in shortcuts.SENT_MESSAGES_IN_2015(thread):
+            weekday = message.timestamp.astimezone(shortcuts.BEIJING_TIME).weekday()
             category_dict[weekday][category_slug] += 1
 
     weekdays_in_year_divisor = defaultdict(lambda: 0)
-    rolling_date = beginning_of_2015
-    while rolling_date < beginning_of_2016:
+    rolling_date = shortcuts.BEGINNING_OF_2015
+    while rolling_date < shortcuts.BEGINNING_OF_2016:
         weekdays_in_year_divisor[rolling_date.weekday()] += 1
         rolling_date += datetime.timedelta(days=1)
 
@@ -429,23 +399,23 @@ def build_sent_by_category_heatmap(wxp, userdata):
 
 
 def build_scalars_table(wxp):
-    individual_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.individual_threads])
-    group_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.group_threads])
+    individual_sent_messages = sum([len(shortcuts.SENT_MESSAGES_IN_2015(thread)) for thread in wxp.individual_threads])
+    group_sent_messages = sum([len(shortcuts.SENT_MESSAGES_IN_2015(thread)) for thread in wxp.group_threads])
     total_sent_messages = individual_sent_messages + group_sent_messages
 
-    individual_received_messages = sum([len(filter(lambda message: not message.sent, _chats_in_2015(thread))) for thread in wxp.individual_threads])
-    group_received_messages = sum([len(filter(lambda message: not message.sent, _chats_in_2015(thread))) for thread in wxp.group_threads])
+    individual_received_messages = sum([len(filter(lambda message: not message.sent, shortcuts.MESSAGES_IN_2015(thread))) for thread in wxp.individual_threads])
+    group_received_messages = sum([len(filter(lambda message: not message.sent, shortcuts.MESSAGES_IN_2015(thread))) for thread in wxp.group_threads])
 
     blank_row = ['' * 3]
 
-    individual_chat_count = len(filter(lambda thread: len(_chats_in_2015(thread)) > 0, wxp.individual_threads))
-    group_chat_count = len(filter(lambda thread: len(_chats_in_2015(thread)) > 0, wxp.group_threads))
+    individual_chat_count = len(filter(lambda thread: len(shortcuts.MESSAGES_IN_2015(thread)) > 0, wxp.individual_threads))
+    group_chat_count = len(filter(lambda thread: len(shortcuts.MESSAGES_IN_2015(thread)) > 0, wxp.group_threads))
 
-    sent_sticker_count = sum([len(filter(lambda message: message.type == Message.TYPE_STICKER, _sent_chats_in_2015(thread))) for thread in wxp.threads])
-    received_sticker_count = sum([len(filter(lambda message: not message.sent and message.type == Message.TYPE_STICKER, _chats_in_2015(thread))) for thread in wxp.threads])
+    sent_sticker_count = sum([len(filter(lambda message: message.type == Message.TYPE_STICKER, shortcuts.SENT_MESSAGES_IN_2015(thread))) for thread in wxp.threads])
+    received_sticker_count = sum([len(filter(lambda message: not message.sent and message.type == Message.TYPE_STICKER, shortcuts.MESSAGES_IN_2015(thread))) for thread in wxp.threads])
 
-    sent_hongbao_count = sum([len(filter(lambda message: message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], _sent_chats_in_2015(thread))) for thread in wxp.threads])
-    received_hongbao_count = sum([len(filter(lambda message: not message.sent and message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], _chats_in_2015(thread))) for thread in wxp.individual_threads])
+    sent_hongbao_count = sum([len(filter(lambda message: message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], shortcuts.SENT_MESSAGES_IN_2015(thread))) for thread in wxp.threads])
+    received_hongbao_count = sum([len(filter(lambda message: not message.sent and message.type in [Message.TYPE_HONGBAO, Message.TYPE_TRANSFER], shortcuts.MESSAGES_IN_2015(thread))) for thread in wxp.individual_threads])
 
     rows = [
         ['In 2015, you sent', _int_with_comma(total_sent_messages), 'messages'],
@@ -480,60 +450,19 @@ def _int_with_comma(integer):
 
 
 if __name__ == '__main__':
-    wxp = Parser('decrypted.db')
+    parser = utils.argparser_with_generic_arguments('Do all the things.')
+    args = parser.parse_args()
+    wxp = Parser(args.db_file_path)
     userdata = UserData.initialize(wxp)
 
-    total_individual_chats = sum([len(_chats_in_2015(thread)) for thread in wxp.individual_threads])
-    individual_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.individual_threads])
-    group_sent_messages = sum([len(_sent_chats_in_2015(thread)) for thread in wxp.group_threads])
-    total_sent_messages = individual_sent_messages + group_sent_messages
-
-    # Figure out how many people we need
-    # to categorize to get to 90% of chats
-    total_cumulative = 0
-    individual_cumulative = 0
-    to_categorize = []
-    for thread in list(reversed(sorted(wxp.threads, key=lambda thread: len(_sent_chats_in_2015(thread))))):
-        if not thread.is_group_chat:
-            individual_cumulative += len(_sent_chats_in_2015(thread))
-        total_cumulative += len(_sent_chats_in_2015(thread))
-        to_categorize.append(thread)
-        if float(total_cumulative) / total_sent_messages > 0.90 and float(individual_cumulative) / individual_sent_messages > 0.90:
-            break
-
-    for thread in to_categorize:
-        if getattr(thread, 'category', None):
-            continue
-        print thread.contact.display_name
+    if len(userdata.categories) == 0:
         print
-        categories_list = userdata.categories_as_list()
-        for i in xrange(0, len(categories_list)):
-            print '%4d - %s' % (i, categories_list[i].display_name)
+        print 'You have not yet added any categorizations for threads.'
+        print 'This will result in missing or suboptimal output.'
         print
-
-        user_entry = raw_input('Enter a number or name a new category: ').strip()
-        if re.compile('\d+').match(user_entry):
-            try:
-                selected_category_index = int(user_entry)
-                if selected_category_index >= 0 and selected_category_index < len(categories_list):
-                    selected_category = categories_list[selected_category_index]
-                    selected_category.add_thread(thread)
-                    userdata.save()
-                    continue
-            except ValueError:
-                pass
-
-        if _slugify(user_entry) in userdata.categories.keys():
-            # Matches an existing category by slug
-            userdata.categories[_slugify(user_entry)].add_thread(thread)
-            userdata.save()
-            continue
-
-        # Whole new category
-        new_category = Category(user_entry)
-        userdata.add_category(new_category)
-        new_category.add_thread(thread)
-        userdata.save()
+        print 'You should run `python categorize.py` to categorize, before you run this script.'
+        print
+        sys.exit(1)
 
     renderers = [
         lambda: build_sent_by_category_by_month_graph(wxp),
