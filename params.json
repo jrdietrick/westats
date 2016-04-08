@@ -1,6 +1,6 @@
 {
   "name": "westats",
   "tagline": "",
-  "body": "### Sample Output\r\n\r\nHere are some of the outputs the **westats** scripts can produce:\r\n\r\n![Vital stats](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/vitals.png)\r\n\r\n![Bar chart](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/bar.png)\r\n\r\n![Word cloud](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/cloud.png)\r\n\r\n![Individual chat rankings](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/individual.png)\r\n\r\n![Silent group chats](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/lurkage.png)\r\n\r\n![Scatter plot](https://raw.githubusercontent.com/jrdietrick/westats/master/sample_output/scatter.png)",
+  "body": "### Sample Output\r\n\r\nHere are some of the outputs the **westats** scripts can produce:\r\n\r\n![Vital stats](http://jrdietrick.github.io/westats/images/vitals.png)\r\n\r\n![Bar chart](http://jrdietrick.github.io/westats/images/bar.png)\r\n\r\n![Word cloud](http://jrdietrick.github.io/westats/images/cloud.png)\r\n\r\n![Individual chat rankings](http://jrdietrick.github.io/westats/images/individual.png)\r\n\r\n![Silent group chats](http://jrdietrick.github.io/westats/images/lurkage.png)\r\n\r\n![Scatter plot](http://jrdietrick.github.io/westats/images/scatter.png)",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
