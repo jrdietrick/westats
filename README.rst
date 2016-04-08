@@ -3,12 +3,20 @@ westats
 =======
 
 
+.. image:: http://jrdietrick.github.io/westats/images/scatter.png
+    :width: 640px
+    :align: center
+
 What is this?
 =============
 Quick-and-dirty Python script(s) for reading a **pre-decrypted** WeChat SQLite database and outputting some stats and visualizations based on them.
 
 It's important to note that the database is a *client-side* database, which means it is authoritative only insofar as your mobile client (WeChat on your phone) observes the universe. Which is to say probably not very far. It is not in any way linked to any WeChat API (public or private) to provide truly authoritative server-side data. But if you use WeChat on your phone and have a significantly lengthy chat history, there will be a lot of cool data to visualize.
 
+
+Samples
+=======
+Click `here <http://jrdietrick.github.io/westats>`__ for some samples of what the output looks like.
 
 Disclaimers
 ===========
