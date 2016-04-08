@@ -2,21 +2,23 @@
 westats
 =======
 
+
 What is this?
 =============
 Quick-and-dirty Python script(s) for reading a **pre-decrypted** WeChat SQLite database and outputting some stats and visualizations based on them.
 
-.. warning::
-
-    This project **really is** quick and dirty. I built it over a couple of evenings of frantic hacking during the Lunar New Year holiday, never with a strong eye towards what the design ought to be; I was instead focused solely on obtaining the pretty pictures it generates as its output.
-
-    Therefore, do not hesitate to propose sweeping changes to its (very small) architecture.
-
 It's important to note that the database is a *client-side* database, which means it is authoritative only insofar as your mobile client (WeChat on your phone) observes the universe. Which is to say probably not very far. It is not in any way linked to any WeChat API (public or private) to provide truly authoritative server-side data. But if you use WeChat on your phone and have a significantly lengthy chat history, there will be a lot of cool data to visualize.
 
-.. warning::
 
-    I've only tested this project on a **rooted Android phone**! I have no idea if there is an analogous way to acquire the database from an iOS device, and **even if you were able to do so, whether the internal schema of the database would be compatible with this project**. Help on this front is appreciated!
+Disclaimers
+===========
+**IMPORTANT**
+
+#. This project **really is** quick and dirty. I built it over a couple of evenings of frantic hacking during the Lunar New Year holiday, never with a strong eye towards what the design ought to be; I was instead focused solely on obtaining the pretty pictures it generates as its output.
+    * Therefore, do not hesitate to propose sweeping changes to its architecture or organization.
+#. I've only tested this project on a **rooted Android phone**! I do not know if there is an analogous way to acquire the database from an iOS device, and **even if you were able to do so, whether the internal schema of the database would be compatible with this project**.
+    * Help on this front is appreciated!
+
 
 How to use
 ==========
