@@ -5,9 +5,32 @@ import utils
 from wxparser import Parser, UserData, Category
 
 
+class FuzzyRange(object):
+
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+
+    def __eq__(self, other):
+        return self.start <= other <= self.end
+
+
+def parse_arguments(generic_parser):
+    generic_parser.add_argument('threshold',
+                                metavar='THRESHOLD',
+                                type=float,
+                                nargs='?',
+                                choices=[FuzzyRange(0.0, 1.0)],
+                                default=0.85,
+                                help='threshold for portion of threads to categorize; \
+                                      threads are ordered from most to least popular, by your sent messages; \
+                                      must be between 0.0 and 1.0 (default 0.85)')
+    return generic_parser.parse_args()
+
+
 if __name__ == '__main__':
     parser = utils.argparser_with_generic_arguments('Simple tool to help you categorize threads.')
-    args = parser.parse_args()
+    args = parse_arguments(parser)
     wxp = Parser(args.db_file_path)
     userdata = UserData.initialize(wxp)
 
@@ -17,7 +40,7 @@ if __name__ == '__main__':
     total_sent_messages = individual_sent_messages + group_sent_messages
 
     # Figure out how many people we need
-    # to categorize to get to 90% of chats
+    # to categorize to get to the threshold
     total_cumulative = 0
     individual_cumulative = 0
     to_categorize = []
@@ -26,7 +49,7 @@ if __name__ == '__main__':
             individual_cumulative += len(shortcuts.SENT_MESSAGES_IN_2015(thread))
         total_cumulative += len(shortcuts.SENT_MESSAGES_IN_2015(thread))
         to_categorize.append(thread)
-        if float(total_cumulative) / total_sent_messages > 0.90 and float(individual_cumulative) / individual_sent_messages > 0.90:
+        if float(total_cumulative) / total_sent_messages > args.threshold and float(individual_cumulative) / individual_sent_messages > args.threshold:
             break
 
     for thread in to_categorize:

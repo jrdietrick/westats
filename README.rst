@@ -67,11 +67,25 @@ It's up to you if you want to create a virtualenv for this project or install th
 ---------------------
 To make the visualizations more useful, you should categorize your chat threads. This will allow you to see how much late-night romantic texting you do, for example. Or to prove to your boss that you really do spend a ton of time on work-related WeChats outside of office hours!
 
+Categorization threshold
+~~~~~~~~~~~~~~~~~~~~~~~~
+You should pick a **threshold** of threads you want to categorize. The recommended value is probably **80-90%**. The principle here is that if you sort all your conversation threads by the number of messages you send, there will be some very popular threads at the front (friends and groups to whom you send a *LOT* of messages), and then towards the end there will be *many, many* threads which have only a message or two each.
+
+In other words, it will be a relatively small task to categorize 85% of your threads by sent message volume, but that last 15% will be a ton of work because you'll be asked to categorize people who you barely chatted with.
+
+For this reason, the default threshold is **0.85** (85%). But you can change it if you like (see below).
+
+How to categorize
+~~~~~~~~~~~~~~~~~
 To do so, run::
 
     python categorize.py decrypted.db
 
-This will automatically tally up messages across all threads in the database and then ask you to categorize the most active threads, in order, which make up 90% or more of your sent messages. You can create as many categories as you want.
+This will automatically tally up messages across all threads in the database and then ask you to categorize the most active threads, in order, which make up 85% or more of your sent messages. You can create as many categories as you want.
+
+If you want to change the threshold, run this instead::
+
+    python categorize.py decrypted.db 0.75  # categorize only 75% of threads by volume
 
 A couple of things to note:
 
