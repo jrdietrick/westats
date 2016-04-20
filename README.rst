@@ -33,11 +33,7 @@ How to use
 
 1. Get your hands on a decrypted database
 -----------------------------------------
-Not covered by this project because there are a number of scripts and articles out there already. Here's a good one:
-https://articles.forensicfocus.com/2014/10/01/decrypt-wechat-enmicromsgdb-database/
-
-There's a script referred to that article, about halfway down:
-https://gist.github.com/fauzimd/8cb0ca85ecaa923df828
+If you have a rooted Android phone, go check out `wechat-tools <https://github.com/jrdietrick/wechat-tools>`__, which should make the job easier.
 
 ...
 
@@ -114,5 +110,5 @@ Credits
 =======
 The following resources were invaluable in the development of this project:
 
-* The aforementioned `article on decrypting WeChat's SQLite database on Android <https://articles.forensicfocus.com/2014/10/01/decrypt-wechat-enmicromsgdb-database/>`__.
+* I referred to `this article on decrypting WeChat's SQLite database on Android <https://articles.forensicfocus.com/2014/10/01/decrypt-wechat-enmicromsgdb-database/>`__, and the script linked therein, for the first many times I obtained and decrypted the database. Eventually, this was useful as reference in developing `wechat-tools <https://github.com/jrdietrick/wechat-tools>`__.
 * The ever-awesome and incredibly easy-to-use `highcharts.js <http://www.highcharts.com/>`__ (free for personal use).
