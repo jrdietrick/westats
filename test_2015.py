@@ -465,7 +465,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     renderers = [
-        lambda: build_sent_by_category_by_month_graph(wxp),
+        lambda: build_sent_by_category_by_month_graph(wxp, userdata),
         lambda: build_sent_message_by_category_scatterplot(wxp, userdata),
         lambda: build_individual_chat_ranking_table(wxp),
         lambda: build_group_chat_ranking_table(wxp),
